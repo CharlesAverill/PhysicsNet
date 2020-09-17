@@ -13,6 +13,7 @@ for root, dirs, files in os.walk("."):
 rows = []
 
 for fp in file_paths:
+    print(fp)
     wav_file = read(fp)
     wav_arr = np.array(wav_file[1], dtype=float)
     fft = np.fft.fft(wav_arr)
