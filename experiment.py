@@ -1,12 +1,14 @@
 import pandas as pd
-
 import matplotlib.pyplot as plt
 import tensorflow as tf
 
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Bidirectional, LSTM, Attention, ELU, Dropout
 from utils import *
-
+from sklearn.preprocessing import scale
 
 import tensorflow.compat.v1 as v1
+
 config = v1.ConfigProto()
 config.gpu_options.allow_growth = True
 session = v1.InteractiveSession(config=config)
@@ -39,49 +41,49 @@ class Attention(tf.keras.layers.Layer):
         return K.sum(output, axis=1)
 
 
+def bidirectional_lstm(input_shape=(636, 128)):
+    model = Sequential()
+
+    model.add(Bidirectional(LSTM(256, return_sequences=True), input_shape=input_shape))
+    model.add(Attention(636))
+    model.add(Dropout(0.2))
+    model.add(Dense(400))
+    model.add(ELU())
+    model.add(Dropout(0.2))
+    model.add(Dense(1))
+
+    model.compile(loss='mse',
+                  optimizer='adam',
+                  metrics=['accuracy'])
+
+    return model
+
+
 df = pd.read_csv("./data/scores.csv", index_col=0)
 
 X = np.array(convert_wav_to_image(df))
 X = np.array(normalize_dataset(X))
 Y = df["score"].values
+Y = scale(Y)
 
-
-def bidirectional(input_shape, optimizer=tf.keras.optimizers.Adam(0.005, beta_1=0.1, beta_2=0.001, amsgrad=True)):
-    model = tf.keras.models.Sequential()
-
-    model.add(tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(256, return_sequences=True), input_shape=input_shape))
-    model.add(Attention())
-    model.add(tf.keras.layers.Dropout(0.2))
-    model.add(tf.keras.layers.Dense(200))
-    model.add(tf.keras.layers.ELU())
-    model.add(tf.keras.layers.Dropout(0.2))
-    model.add(tf.keras.layers.Dense(1, activation='softmax'))
-
-    model.compile(loss='mse',
-                  optimizer=optimizer,
-                  metrics=['mae', 'mse'])
-
-    return model
-
-
-bidirectional_lstm = bidirectional(X[0].shape)
+bdlstm = bidirectional_lstm(X[0].shape)
 
 es = tf.keras.callbacks.EarlyStopping(monitor='val_acc', mode='max', verbose=1, patience=10)
-hist = bidirectional_lstm.fit(X,
-                              Y,
-                              batch_size=256,
-                              epochs=500,
-                              validation_split=.2,
-                              callbacks=[es])
+hist = bdlstm.fit(X,
+                  Y,
+                  batch_size=256,
+                  epochs=10,
+                  validation_split=.2,
+                  callbacks=[es])
 
 loss = hist.history['loss']
 val_loss = hist.history['val_loss']
 stopped_epoch = es.stopped_epoch
-epochs = range(stopped_epoch+1)
+epochs = range(stopped_epoch + 1)
 
-plt.figure(figsize=(15,5))
-plt.plot(epochs, loss)
-plt.plot(epochs, val_loss)
+plt.figure(figsize=(15, 5))
+plt.plot(loss)
+plt.plot(val_loss)
 plt.title('Loss over epochs', weight='bold', fontsize=22)
 plt.xlabel('Epochs', fontsize=16)
 plt.ylabel('Loss', fontsize=16)

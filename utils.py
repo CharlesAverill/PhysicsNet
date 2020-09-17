@@ -56,7 +56,6 @@ def read_as_melspectrogram(path):
 def convert_wav_to_image(df):
     output = []
     for _, row in df.iterrows():
-        print("Row", len(output) + 1)
         x = read_as_melspectrogram(str(row['path']))
         output.append(x.transpose())
     return output
