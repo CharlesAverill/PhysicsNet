@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Bidirectional, LSTM, Attention, ELU, Dropout
+from tensorflow.keras.layers import Dense, Bidirectional, LSTM, ELU, Dropout
 from utils import *
 from sklearn.preprocessing import scale
 
@@ -12,6 +12,33 @@ import tensorflow.compat.v1 as v1
 config = v1.ConfigProto()
 config.gpu_options.allow_growth = True
 session = v1.InteractiveSession(config=config)
+
+
+class Attention(tf.keras.layers.Layer):
+
+    def __init__(self, return_sequences=True):
+        self.return_sequences = return_sequences
+        super(Attention, self).__init__()
+
+    def build(self, input_shape):
+        self.W = self.add_weight(name="att_weight", shape=(input_shape[-1], 1),
+                                 initializer="normal")
+        self.b = self.add_weight(name="att_bias", shape=(input_shape[1], 1),
+                                 initializer="zeros")
+
+        super(Attention, self).build(input_shape)
+
+    def call(self, x):
+        from tensorflow.keras import backend as K
+
+        e = K.tanh(K.dot(x, self.W) + self.b)
+        a = K.softmax(e, axis=1)
+        output = x * a
+
+        if self.return_sequences:
+            return output
+
+        return K.sum(output, axis=1)
 
 
 def bidirectional_lstm(input_shape=(636, 128)):
