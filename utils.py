@@ -3,9 +3,9 @@ import librosa
 
 # Preprocessing parameters
 sr = 44100  # Sampling rate
-duration = 5
+duration = 2
 hop_length = 347  # to make time steps 128
-fmin = 20
+fmin = 10
 fmax = sr // 2
 n_mels = 128
 n_fft = n_mels * 20
